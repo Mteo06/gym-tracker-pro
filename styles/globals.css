@@ -1,0 +1,294 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================
+   STILI GLOBALI GYMTRACKER PRO
+   ===================================================== */
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply antialiased bg-zinc-950 text-white;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Rimuovi gli spinner dai campi numerici */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* ==================== BUTTONS ==================== */
+  .btn-primary {
+    @apply bg-gym-red hover:bg-gym-red-dark text-white font-bold py-3 px-6 rounded-lg 
+           transition-all duration-200 shadow-lg hover:shadow-gym-red/50 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed 
+           disabled:hover:shadow-none disabled:active:scale-100
+           flex items-center justify-center gap-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-3 px-6 
+           rounded-lg transition-all duration-200 border border-zinc-700
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+           flex items-center justify-center gap-2;
+  }
+
+  .btn-danger {
+    @apply bg-red-900 hover:bg-red-800 text-white font-semibold py-2 px-4
+           rounded-lg transition-all duration-200 border border-red-700
+           active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply text-zinc-400 hover:text-white hover:bg-zinc-800 py-2 px-4
+           rounded-lg transition-all duration-200;
+  }
+
+  /* ==================== CARDS ==================== */
+  .card {
+    @apply bg-zinc-900 rounded-xl p-6 shadow-2xl border border-zinc-800
+           transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply card hover:border-gym-red hover:shadow-gym-red/20;
+  }
+
+  .card-stats {
+    @apply card relative overflow-hidden;
+  }
+
+  /* ==================== FORMS ==================== */
+  .input-field {
+    @apply bg-zinc-800 border border-zinc-700 text-white rounded-lg px-4 py-3 
+           w-full focus:outline-none focus:ring-2 focus:ring-gym-red 
+           focus:border-transparent transition-all duration-200
+           placeholder:text-zinc-500;
+  }
+
+  .input-field-error {
+    @apply input-field border-red-600 focus:ring-red-600;
+  }
+
+  .label {
+    @apply block text-zinc-300 font-semibold mb-2 text-sm uppercase tracking-wide;
+  }
+
+  .textarea-field {
+    @apply input-field min-h-[100px] resize-y;
+  }
+
+  .select-field {
+    @apply input-field cursor-pointer;
+  }
+
+  /* ==================== BADGES ==================== */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide;
+  }
+
+  .badge-success {
+    @apply badge bg-green-600 text-white;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-600 text-white;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-600 text-white;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-600 text-white;
+  }
+
+  /* ==================== ALERTS ==================== */
+  .alert {
+    @apply p-4 rounded-lg border-2 mb-4;
+  }
+
+  .alert-error {
+    @apply alert bg-red-900/50 border-red-600 text-red-200;
+  }
+
+  .alert-success {
+    @apply alert bg-green-900/50 border-green-600 text-green-200;
+  }
+
+  .alert-info {
+    @apply alert bg-blue-900/50 border-blue-600 text-blue-200;
+  }
+
+  /* ==================== LOADING ==================== */
+  .spinner {
+    @apply animate-spin rounded-full border-t-4 border-gym-red;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-zinc-800 rounded;
+  }
+
+  /* ==================== DIVIDERS ==================== */
+  .divider {
+    @apply border-t border-zinc-800 my-6;
+  }
+
+  /* ==================== CONTAINERS ==================== */
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 py-8;
+  }
+
+  .section-header {
+    @apply mb-12;
+  }
+
+  .section-title {
+    @apply text-5xl font-black text-white mb-2 tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-zinc-400 text-lg;
+  }
+}
+
+/* ==================== SCROLLBAR PERSONALIZZATA ==================== */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #18181b;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dc2626;
+  border-radius: 6px;
+  border: 2px solid #18181b;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b91c1c;
+}
+
+::-webkit-scrollbar-corner {
+  background: #18181b;
+}
+
+/* ==================== ANIMAZIONI CUSTOM ==================== */
+@keyframes slideInFromBottom {
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-slide-in {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ==================== UTILITIES ==================== */
+.text-gradient {
+  @apply bg-gradient-to-r from-gym-red to-gym-red-light bg-clip-text text-transparent;
+}
+
+.bg-gradient-gym {
+  @apply bg-gradient-to-br from-zinc-950 via-zinc-900 to-red-950;
+}
+
+.shadow-gym {
+  box-shadow: 0 10px 40px -10px rgba(220, 38, 38, 0.3);
+}
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+
+  .card {
+    @apply border border-gray-300 shadow-none;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    @apply hidden;
+  }
+}
+
+/* ==================== ACCESSIBILITÀ ==================== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible per accessibilità keyboard */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-gym-red;
+}
+
+/* ==================== RESPONSIVE HELPERS ==================== */
+@media (max-width: 640px) {
+  .section-title {
+    @apply text-3xl;
+  }
+
+  .card {
+    @apply p-4;
+  }
+}
