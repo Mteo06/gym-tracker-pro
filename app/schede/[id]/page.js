@@ -1,11 +1,10 @@
 'use client';
-
-'use client';
 import { useState, useRef, useEffect } from 'react';
 import { creaClientSupabase } from '../../../lib/supabaseClient';
-import { useRouter, useParams } from 'next/navigation';  // ← useParams aggiunto
-import Link from 'next/link';  // ← Link aggiunto
-import { Plus, Trash2, Save, Calendar, AlertCircle, GripVertical, Dumbbell } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { Plus, Trash2, Save, Calendar, AlertCircle, GripVertical, Dumbbell, ArrowLeft, Edit, CheckCircle2 } from 'lucide-react';
+
 
 export default function DettaglioSchedaPage() {
   const [scheda, setScheda] = useState(null);
