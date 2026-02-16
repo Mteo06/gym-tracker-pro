@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { creaClientSupabase } from '@/lib/supabaseClient';
+import { creaClientSupabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, ClipboardList, Calendar, Dumbbell, Trash2, CheckCircle2, XCircle } from 'lucide-react';
@@ -17,7 +17,7 @@ export default function SchedeListPage() {
   }, []);
 
   const verificaECaricaSchede = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {  { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/login');
       return;
@@ -71,7 +71,7 @@ export default function SchedeListPage() {
       .eq('id', schedaId);
 
     if (!error) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {  { user } } = await supabase.auth.getUser();
       caricaSchede(user.id);
     }
   };
@@ -199,7 +199,7 @@ export default function SchedeListPage() {
                   </button>
                 </div>
                 <Link
-                  href={`/schede/${scheda.id}`}
+                  href={`/schede/dettaglio?id=${scheda.id}`}
                   className="text-gym-red hover:text-gym-red-light font-semibold text-sm uppercase tracking-wide transition-colors"
                 >
                   Visualizza →

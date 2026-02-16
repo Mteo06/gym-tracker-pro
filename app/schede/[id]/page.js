@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, Calendar, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { creaClientSupabase } from '../../../lib/supabaseClient';
-import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Save, Calendar, AlertCircle, GripVertical, Dumbbell } from 'lucide-react';
 
 export default function DettaglioSchedaPage() {
   const [scheda, setScheda] = useState(null);
@@ -14,18 +15,19 @@ export default function DettaglioSchedaPage() {
   const supabase = creaClientSupabase();
 
   useEffect(() => {
-    caricaDettaglioScheda();
-  }, [params.id]);
+    if (params?.id) {
+      caricaDettaglioScheda();
+    }
+  }, [params?.id]);
 
   const caricaDettaglioScheda = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {  { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // Carica scheda
-    const { data: schedaData, error: schedaError } = await supabase
+    const {  schedaData, error: schedaError } = await supabase
       .from('schede_allenamento')
       .select('*')
       .eq('id', params.id)
@@ -39,8 +41,7 @@ export default function DettaglioSchedaPage() {
 
     setScheda(schedaData);
 
-    // Carica esercizi
-    const { data: eserciziData } = await supabase
+    const {  eserciziData } = await supabase
       .from('esercizi_scheda')
       .select('*')
       .eq('scheda_id', params.id)
@@ -88,11 +89,24 @@ export default function DettaglioSchedaPage() {
     );
   }
 
+  if (!scheda) {
+    return (
+      <div className="page-container">
+        <div className="card text-center py-16">
+          <h3 className="text-2xl font-bold text-white mb-4">Scheda non trovata</h3>
+          <Link href="/schede" className="btn-primary inline-flex">
+            Torna alle Schede
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const eserciziPerGiorno = raggruppaEserciziPerGiorno();
 
   return (
     <div className="page-container">
-            {/* Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between section-header gap-4">
         <div className="flex items-center space-x-4">
           <Link href="/schede" className="btn-secondary p-3">
@@ -114,7 +128,7 @@ export default function DettaglioSchedaPage() {
             </span>
           )}
           <Link
-            href={`/schede/${params.id}/modifica`}
+            href={`/schede/modifica?id=${params.id}`}
             className="btn-secondary"
           >
             <Edit className="w-5 h-5" />
@@ -129,7 +143,6 @@ export default function DettaglioSchedaPage() {
           </button>
         </div>
       </div>
-
 
       {/* Info Scheda */}
       <div className="card mb-8 bg-gradient-to-br from-gym-red/10 to-zinc-900 border-gym-red/30">
@@ -162,7 +175,7 @@ export default function DettaglioSchedaPage() {
           <div key={giorno} className="card animate-slide-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-black text-white uppercase">{giorno}</h2>
-              <span className="badge bg-zinc-800 text-zinc-300 text-base px-4 py-2">
+              <span className="bg-zinc-800 text-zinc-300 text-base px-4 py-2 rounded-full font-bold">
                 {eserciziPerGiorno[giorno]?.length || 0} esercizi
               </span>
             </div>
