@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { creaClientSupabase } from '../lib/supabaseClient';
+import { creaClientSupabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Dumbbell, Mail, Lock, Zap } from 'lucide-react';
+import { Dumbbell, Mail, Lock, AlertCircle, Zap } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -45,6 +45,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-gym">
       <div className="max-w-md w-full animate-slide-in">
+        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="bg-gym-red p-4 rounded-full shadow-gym animate-pulse-soft">
@@ -55,8 +56,10 @@ export default function LoginPage() {
           <p className="text-zinc-400">Continua il tuo percorso di allenamento</p>
         </div>
 
+        {/* Card Login */}
         <div className="card">
           <form onSubmit={gestisciLogin} className="space-y-6">
+            {/* Email */}
             <div>
               <label className="label">
                 <Mail className="w-4 h-4 inline mr-2" />
@@ -73,6 +76,7 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Password */}
             <div>
               <label className="label">
                 <Lock className="w-4 h-4 inline mr-2" />
@@ -88,12 +92,15 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Messaggio Errore */}
             {errore && (
-              <div className="alert-error">
+              <div className="alert-error flex items-start">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
                 <span>{errore}</span>
               </div>
             )}
 
+            {/* Bottone Submit */}
             <button
               type="submit"
               disabled={caricamento}
@@ -113,13 +120,37 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Link Registrazione */}
           <div className="mt-6 text-center">
             <p className="text-zinc-400">
               Non hai un account?{' '}
-              <Link href="/RegisterPage" className="text-gym-red hover:text-gym-red-light font-semibold transition-colors">
+              <Link href="/register" className="text-gym-red hover:text-gym-red-light font-semibold transition-colors">
                 Registrati ora
               </Link>
             </p>
+          </div>
+
+          {/* Password dimenticata (opzionale) */}
+          <div className="mt-4 text-center">
+            <Link href="#" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">
+              Password dimenticata?
+            </Link>
+          </div>
+        </div>
+
+        {/* Features Preview */}
+        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
+          <div className="text-zinc-400">
+            <div className="text-2xl font-black text-gym-red mb-1">∞</div>
+            <div className="text-xs">Schede Illimitate</div>
+          </div>
+          <div className="text-zinc-400">
+            <div className="text-2xl font-black text-gym-red mb-1">📊</div>
+            <div className="text-xs">Tracking Completo</div>
+          </div>
+          <div className="text-zinc-400">
+            <div className="text-2xl font-black text-gym-red mb-1">🔥</div>
+            <div className="text-xs">100% Gratuito</div>
           </div>
         </div>
       </div>

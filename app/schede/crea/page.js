@@ -1,22 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { creaClientSupabase } from '../lib/supabaseClient';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Save, Calendar, GripVertical, Dumbbell, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { creaClientSupabase } from '../../../lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import { Plus, Trash2, Save, Calendar, GripVertical, Dumbbell } from 'lucide-react';
 
-export default function ModificaSchedaPage() {
+export default function CreaSchedaPage() {
   const [nomeScheda, setNomeScheda] = useState('');
   const [descrizione, setDescrizione] = useState('');
   const [giorniSelezionati, setGiorniSelezionati] = useState([]);
   const [esercizi, setEsercizi] = useState([]);
-  const [caricamento, setCaricamento] = useState(true);
-  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
+  const [caricamento, setCaricamento] = useState(false);
   const [errore, setErrore] = useState('');
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const schedaId = searchParams.get('id');
   const supabase = creaClientSupabase();
   const ultimoEsercizioRef = useRef(null);
 
@@ -24,52 +20,10 @@ export default function ModificaSchedaPage() {
   const gruppiMuscolari = ['Petto', 'Schiena', 'Spalle', 'Bicipiti', 'Tricipiti', 'Gambe', 'Addome', 'Cardio', 'Altro'];
 
   useEffect(() => {
-    if (schedaId) {
-      caricaScheda();
-    }
-  }, [schedaId]);
-
-  useEffect(() => {
     if (ultimoEsercizioRef.current) {
       ultimoEsercizioRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [esercizi.length]);
-
-  const caricaScheda = async () => {
-    const {  { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/LoginPage');
-      return;
-    }
-
-    const {  schedaData, error: schedaError } = await supabase
-      .from('schede_allenamento')
-      .select('*')
-      .eq('id', schedaId)
-      .eq('utente_id', user.id)
-      .single();
-
-    if (schedaError || !schedaData) {
-      router.push('/SchedeListPage');
-      return;
-    }
-
-    setNomeScheda(schedaData.nome_scheda);
-    setDescrizione(schedaData.descrizione || '');
-    setGiorniSelezionati(schedaData.giorni_settimana || []);
-
-    const {  eserciziData } = await supabase
-      .from('esercizi_scheda')
-      .select('*')
-      .eq('scheda_id', schedaId)
-      .order('ordine_esecuzione');
-
-    if (eserciziData) {
-      setEsercizi(eserciziData);
-    }
-
-    setCaricamento(false);
-  };
 
   const aggiungiEsercizio = () => {
     setEsercizi([...esercizi, {
@@ -85,16 +39,7 @@ export default function ModificaSchedaPage() {
     }]);
   };
 
-  const rimuoviEsercizio = async (index) => {
-    const esercizio = esercizi[index];
-    
-    if (esercizio.id) {
-      await supabase
-        .from('esercizi_scheda')
-        .delete()
-        .eq('id', esercizio.id);
-    }
-    
+  const rimuoviEsercizio = (index) => {
     setEsercizi(esercizi.filter((_, i) => i !== index));
   };
 
@@ -104,15 +49,7 @@ export default function ModificaSchedaPage() {
     setEsercizi(nuoviEsercizi);
   };
 
-  const toggleGiorno = (giorno) => {
-    if (giorniSelezionati.includes(giorno)) {
-      setGiorniSelezionati(giorniSelezionati.filter(g => g !== giorno));
-    } else {
-      setGiorniSelezionati([...giorniSelezionati, giorno]);
-    }
-  };
-
-  const salvaModifiche = async (e) => {
+  const salvaScheda = async (e) => {
     e.preventDefault();
     setErrore('');
 
@@ -132,37 +69,37 @@ export default function ModificaSchedaPage() {
       return;
     }
 
-    setSalvataggioInCorso(true);
+    setCaricamento(true);
 
-    const {  { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push('/LoginPage');
+      router.push('/login');
       return;
     }
 
-    const { error: schedaError } = await supabase
+    const { data: schedaData, error: schedaError } = await supabase
       .from('schede_allenamento')
-      .update({
-        nome_scheda: nomeScheda,
-        descrizione: descrizione || null,
-        giorni_settimana: giorniSelezionati
-      })
-      .eq('id', schedaId);
+      .insert([
+        { 
+          utente_id: user.id, 
+          nome_scheda: nomeScheda, 
+          descrizione: descrizione || null,
+          giorni_settimana: giorniSelezionati, 
+          scheda_attiva: true 
+        }
+      ])
+      .select()
+      .single();
 
     if (schedaError) {
       setErrore('Errore nel salvataggio della scheda: ' + schedaError.message);
-      setSalvataggioInCorso(false);
+      setCaricamento(false);
       return;
     }
 
-    await supabase
-      .from('esercizi_scheda')
-      .delete()
-      .eq('scheda_id', schedaId);
-
     if (esercizi.length > 0) {
-      const eserciziFormattati = esercizi.map((ex, index) => ({
-        scheda_id: schedaId,
+      const eserciziFormattati = esercizi.map(ex => ({
+        scheda_id: schedaData.id,
         giorno_settimana: ex.giorno_settimana,
         nome_esercizio: ex.nome_esercizio,
         numero_serie: parseInt(ex.numero_serie) || 3,
@@ -171,7 +108,7 @@ export default function ModificaSchedaPage() {
         note_tecniche: ex.note_tecniche || null,
         tempo_pausa: ex.tempo_pausa || null,
         gruppo_muscolare: ex.gruppo_muscolare || null,
-        ordine_esecuzione: index
+        ordine_esecuzione: ex.ordine_esecuzione
       }));
 
       const { error: eserciziError } = await supabase
@@ -180,40 +117,33 @@ export default function ModificaSchedaPage() {
 
       if (eserciziError) {
         setErrore('Errore nel salvataggio degli esercizi: ' + eserciziError.message);
-        setSalvataggioInCorso(false);
+        setCaricamento(false);
         return;
       }
     }
 
-    router.push(`/SchedaDettaglioPage?id=${schedaId}`);
-    setSalvataggioInCorso(false);
+    router.push('/schede');
+    setCaricamento(false);
   };
 
-  if (caricamento) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="spinner h-16 w-16"></div>
-      </div>
-    );
-  }
+  const toggleGiorno = (giorno) => {
+    if (giorniSelezionati.includes(giorno)) {
+      setGiorniSelezionati(giorniSelezionati.filter(g => g !== giorno));
+    } else {
+      setGiorniSelezionati([...giorniSelezionati, giorno]);
+    }
+  };
 
   return (
     <div className="page-container max-w-5xl">
       <div className="section-header">
-        <div className="flex items-center space-x-4 mb-4">
-          <Link href={`/SchedaDettaglioPage?id=${schedaId}`} className="btn-secondary p-3">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="section-title">
-              MODIFICA <span className="text-gradient">SCHEDA</span>
-            </h1>
-            <p className="section-subtitle">Aggiorna il tuo programma di allenamento</p>
-          </div>
-        </div>
+        <h1 className="section-title">
+          CREA <span className="text-gradient">SCHEDA</span>
+        </h1>
+        <p className="section-subtitle">Personalizza il tuo programma di allenamento</p>
       </div>
 
-      <form onSubmit={salvaModifiche} className="space-y-8">
+      <form onSubmit={salvaScheda} className="space-y-8">
         {/* Informazioni Base */}
         <div className="card animate-slide-in">
           <h2 className="text-2xl font-black text-white mb-6 uppercase">Informazioni Base</h2>
@@ -279,6 +209,7 @@ export default function ModificaSchedaPage() {
         <div className="card animate-slide-in" style={{ animationDelay: '0.2s' }}>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-black text-white uppercase">Esercizi *</h2>
+            {/* Bottone in alto a destra - sempre visibile se giorni selezionati */}
             {giorniSelezionati.length > 0 && (
               <button
                 type="button"
@@ -430,6 +361,7 @@ export default function ModificaSchedaPage() {
                 </div>
               ))}
 
+              {/* Bottone anche in fondo */}
               <button
                 type="button"
                 onClick={aggiungiEsercizio}
@@ -442,22 +374,30 @@ export default function ModificaSchedaPage() {
           )}
         </div>
 
+
+
         {errore && (
-          <div className="alert-error">
+          <div className="alert-error flex items-start">
+            <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
             <span>{errore}</span>
           </div>
         )}
 
         <div className="flex flex-col sm:flex-row justify-end gap-4">
-          <Link href={`/SchedaDettaglioPage?id=${schedaId}`} className="btn-secondary text-center">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="btn-secondary"
+            disabled={caricamento}
+          >
             Annulla
-          </Link>
+          </button>
           <button
             type="submit"
-            disabled={salvataggioInCorso || esercizi.length === 0 || giorniSelezionati.length === 0}
+            disabled={caricamento || esercizi.length === 0 || giorniSelezionati.length === 0}
             className="btn-primary"
           >
-            {salvataggioInCorso ? (
+            {caricamento ? (
               <>
                 <div className="spinner h-5 w-5 border-2"></div>
                 SALVATAGGIO...
@@ -465,7 +405,7 @@ export default function ModificaSchedaPage() {
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                SALVA MODIFICHE
+                SALVA SCHEDA
               </>
             )}
           </button>

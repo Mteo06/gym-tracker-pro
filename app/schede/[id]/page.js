@@ -1,51 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Calendar, Edit, Trash2, CheckCircle2 } from 'lucide-react';
-import { creaClientSupabase } from '../lib/supabaseClient';
+import { useState, useRef, useEffect } from 'react';
+import { creaClientSupabase } from '../../../lib/supabaseClient';
+import { useRouter, useParams } from 'next/navigation';
+import { Plus, Trash2, Save, Calendar, AlertCircle, GripVertical, Dumbbell } from 'lucide-react';
 
-export default function SchedaDettaglioPage() {
+export default function DettaglioSchedaPage() {
   const [scheda, setScheda] = useState(null);
   const [esercizi, setEsercizi] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const schedaId = searchParams.get('id');
+  const params = useParams();
   const supabase = creaClientSupabase();
 
   useEffect(() => {
-    if (schedaId) {
-      caricaDettaglioScheda();
-    }
-  }, [schedaId]);
+    caricaDettaglioScheda();
+  }, [params.id]);
 
   const caricaDettaglioScheda = async () => {
-    const {  { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push('/LoginPage');
+      router.push('/login');
       return;
     }
 
-    const {  schedaData, error: schedaError } = await supabase
+    // Carica scheda
+    const { data: schedaData, error: schedaError } = await supabase
       .from('schede_allenamento')
       .select('*')
-      .eq('id', schedaId)
+      .eq('id', params.id)
       .eq('utente_id', user.id)
       .single();
 
     if (schedaError || !schedaData) {
-      router.push('/SchedeListPage');
+      router.push('/schede');
       return;
     }
 
     setScheda(schedaData);
 
-    const {  eserciziData } = await supabase
+    // Carica esercizi
+    const { data: eserciziData } = await supabase
       .from('esercizi_scheda')
       .select('*')
-      .eq('scheda_id', schedaId)
+      .eq('scheda_id', params.id)
       .order('giorno_settimana')
       .order('ordine_esecuzione');
 
@@ -64,10 +62,10 @@ export default function SchedaDettaglioPage() {
     const { error } = await supabase
       .from('schede_allenamento')
       .delete()
-      .eq('id', schedaId);
+      .eq('id', params.id);
 
     if (!error) {
-      router.push('/SchedeListPage');
+      router.push('/schede');
     }
   };
 
@@ -90,27 +88,14 @@ export default function SchedaDettaglioPage() {
     );
   }
 
-  if (!scheda) {
-    return (
-      <div className="page-container">
-        <div className="card text-center py-16">
-          <h3 className="text-2xl font-bold text-white mb-4">Scheda non trovata</h3>
-          <Link href="/SchedeListPage" className="btn-primary inline-flex">
-            Torna alle Schede
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   const eserciziPerGiorno = raggruppaEserciziPerGiorno();
 
   return (
     <div className="page-container">
-      {/* Header */}
+            {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between section-header gap-4">
         <div className="flex items-center space-x-4">
-          <Link href="/SchedeListPage" className="btn-secondary p-3">
+          <Link href="/schede" className="btn-secondary p-3">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -129,7 +114,7 @@ export default function SchedaDettaglioPage() {
             </span>
           )}
           <Link
-            href={`/ModificaSchedaPage?id=${schedaId}`}
+            href={`/schede/${params.id}/modifica`}
             className="btn-secondary"
           >
             <Edit className="w-5 h-5" />
@@ -144,6 +129,7 @@ export default function SchedaDettaglioPage() {
           </button>
         </div>
       </div>
+
 
       {/* Info Scheda */}
       <div className="card mb-8 bg-gradient-to-br from-gym-red/10 to-zinc-900 border-gym-red/30">
@@ -176,7 +162,7 @@ export default function SchedaDettaglioPage() {
           <div key={giorno} className="card animate-slide-in">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-black text-white uppercase">{giorno}</h2>
-              <span className="bg-zinc-800 text-zinc-300 text-base px-4 py-2 rounded-full font-bold">
+              <span className="badge bg-zinc-800 text-zinc-300 text-base px-4 py-2">
                 {eserciziPerGiorno[giorno]?.length || 0} esercizi
               </span>
             </div>
