@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { creaClientSupabase } from '../../../../lib/supabaseClient';
+import { creaClientSupabase } from '../../../lib/supabaseClient';
 import { useRouter, useParams } from 'next/navigation';
 import { Plus, Trash2, Save, Calendar, AlertCircle, GripVertical, Dumbbell, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';

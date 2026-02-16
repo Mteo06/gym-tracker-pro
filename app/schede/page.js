@@ -86,7 +86,6 @@ export default function SchedeListPage() {
 
   return (
     <div className="page-container">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between section-header">
         <div>
           <h1 className="section-title mb-2">
@@ -100,7 +99,6 @@ export default function SchedeListPage() {
         </Link>
       </div>
 
-      {/* Lista Schede */}
       {schede.length === 0 ? (
         <div className="card text-center py-16 animate-slide-in">
           <div className="bg-zinc-800 w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -123,7 +121,6 @@ export default function SchedeListPage() {
               className="card-hover group animate-slide-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              {/* Header Card */}
               <div className="flex items-start justify-between mb-4">
                 <div className="bg-gym-red p-3 rounded-lg group-hover:scale-110 transition-transform">
                   <Dumbbell className="w-6 h-6 text-white" />
@@ -143,25 +140,21 @@ export default function SchedeListPage() {
                 </div>
               </div>
 
-              {/* Nome Scheda */}
               <h3 className="text-xl font-black text-white mb-3 line-clamp-2">
                 {scheda.nome_scheda}
               </h3>
 
-              {/* Descrizione */}
               {scheda.descrizione && (
                 <p className="text-zinc-400 text-sm mb-3 line-clamp-2">
                   {scheda.descrizione}
                 </p>
               )}
 
-              {/* Info Giorni */}
               <div className="flex items-center text-zinc-400 text-sm mb-3">
                 <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
                 <span>{scheda.giorni_settimana?.length || 0} giorni/settimana</span>
               </div>
 
-              {/* Giorni Badge */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {scheda.giorni_settimana?.slice(0, 4).map((giorno) => (
                   <span key={giorno} className="bg-zinc-800 text-zinc-300 text-xs px-2 py-1 rounded font-semibold">
@@ -175,12 +168,10 @@ export default function SchedeListPage() {
                 )}
               </div>
 
-              {/* Numero Esercizi */}
               <div className="text-sm text-zinc-500 mb-4">
                 {scheda.esercizi_scheda?.length || 0} esercizi totali
               </div>
 
-              {/* Azioni */}
               <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
                 <div className="flex items-center space-x-2">
                   <button

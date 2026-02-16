@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import { creaClientSupabase } from '../../../lib/supabaseClient';
@@ -11,14 +11,15 @@ export default function DettaglioSchedaPage() {
   const [esercizi, setEsercizi] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
   const router = useRouter();
-  const params = useParams();
+  const searchParams = useSearchParams();
+  const schedaId = searchParams.get('id');
   const supabase = creaClientSupabase();
 
   useEffect(() => {
-    if (params?.id) {
+    if (schedaId) {
       caricaDettaglioScheda();
     }
-  }, [params?.id]);
+  }, [schedaId]);
 
   const caricaDettaglioScheda = async () => {
     const {  { user } } = await supabase.auth.getUser();
@@ -30,7 +31,7 @@ export default function DettaglioSchedaPage() {
     const {  schedaData, error: schedaError } = await supabase
       .from('schede_allenamento')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', schedaId)
       .eq('utente_id', user.id)
       .single();
 
@@ -44,7 +45,7 @@ export default function DettaglioSchedaPage() {
     const {  eserciziData } = await supabase
       .from('esercizi_scheda')
       .select('*')
-      .eq('scheda_id', params.id)
+      .eq('scheda_id', schedaId)
       .order('giorno_settimana')
       .order('ordine_esecuzione');
 
@@ -63,7 +64,7 @@ export default function DettaglioSchedaPage() {
     const { error } = await supabase
       .from('schede_allenamento')
       .delete()
-      .eq('id', params.id);
+      .eq('id', schedaId);
 
     if (!error) {
       router.push('/schede');
@@ -128,7 +129,7 @@ export default function DettaglioSchedaPage() {
             </span>
           )}
           <Link
-            href={`/schede/modifica?id=${params.id}`}
+            href={`/schede/modifica?id=${schedaId}`}
             className="btn-secondary"
           >
             <Edit className="w-5 h-5" />
