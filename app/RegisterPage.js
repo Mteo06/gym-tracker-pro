@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { creaClientSupabase } from '@/lib/supabaseClient';
+import { creaClientSupabase } from '../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Dumbbell, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { Dumbbell, Mail, Lock, User } from 'lucide-react';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -22,7 +22,6 @@ export default function RegisterPage() {
     setErrore('');
     setSuccesso('');
 
-    // Validazioni
     if (password !== confermaPassword) {
       setErrore('Le password non corrispondono');
       return;
@@ -40,12 +39,11 @@ export default function RegisterPage() {
 
     setCaricamento(true);
 
-    // Registrazione con Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
+         {
           nome_completo: nomeCompleto,
         },
         emailRedirectTo: `${window.location.origin}/`,
@@ -61,7 +59,6 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
-      // Inserisci il profilo utente nella tabella profili_utenti
       const { error: profiloError } = await supabase
         .from('profili_utenti')
         .insert([
@@ -76,14 +73,11 @@ export default function RegisterPage() {
         console.error('Errore creazione profilo:', profiloError);
       }
 
-      // Controlla se è richiesta la verifica email
       if (data.session) {
-        // Login automatico
         router.push('/');
       } else {
-        // Email di conferma richiesta
         setSuccesso('Registrazione completata! Controlla la tua email per verificare l\'account.');
-        setTimeout(() => router.push('/login'), 3000);
+        setTimeout(() => router.push('/LoginPage'), 3000);
       }
     }
     
@@ -105,7 +99,6 @@ export default function RegisterPage() {
 
         <div className="card">
           <form onSubmit={gestisciRegistrazione} className="space-y-6">
-            {/* Nome Completo */}
             <div>
               <label className="label">
                 <User className="w-4 h-4 inline mr-2" />
@@ -122,7 +115,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Email */}
             <div>
               <label className="label">
                 <Mail className="w-4 h-4 inline mr-2" />
@@ -138,7 +130,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="label">
                 <Lock className="w-4 h-4 inline mr-2" />
@@ -155,7 +146,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Conferma Password */}
             <div>
               <label className="label">
                 <Lock className="w-4 h-4 inline mr-2" />
@@ -172,22 +162,18 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Messaggio Errore */}
             {errore && (
-              <div className="alert-error flex items-start">
-                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div className="alert-error">
                 <span>{errore}</span>
               </div>
             )}
 
-            {/* Messaggio Successo */}
             {successo && (
               <div className="alert-success">
                 {successo}
               </div>
             )}
 
-            {/* Bottone Submit */}
             <button
               type="submit"
               disabled={caricamento}
@@ -204,20 +190,12 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* Link Login */}
           <div className="mt-6 text-center">
             <p className="text-zinc-400">
               Hai già un account?{' '}
-              <Link href="/login" className="text-gym-red hover:text-gym-red-light font-semibold transition-colors">
+              <Link href="/LoginPage" className="text-gym-red hover:text-gym-red-light font-semibold transition-colors">
                 Accedi qui
               </Link>
-            </p>
-          </div>
-
-          {/* Info Privacy */}
-          <div className="mt-6 pt-6 border-t border-zinc-800">
-            <p className="text-xs text-zinc-500 text-center">
-              Registrandoti, accetti i nostri Termini di Servizio e la Privacy Policy
             </p>
           </div>
         </div>

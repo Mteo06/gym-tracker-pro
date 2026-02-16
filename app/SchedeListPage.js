@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { creaClientSupabase } from '../../lib/supabaseClient';
+import { creaClientSupabase } from '../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, ClipboardList, Calendar, Dumbbell, Trash2, CheckCircle2, XCircle } from 'lucide-react';
@@ -19,7 +19,7 @@ export default function SchedeListPage() {
   const verificaECaricaSchede = async () => {
     const {  { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push('/login');
+      router.push('/LoginPage');
       return;
     }
 
@@ -48,7 +48,7 @@ export default function SchedeListPage() {
   };
 
   const eliminaScheda = async (schedaId, nomeScheda) => {
-    if (!confirm(`Sei sicuro di voler eliminare la scheda "${nomeScheda}"?\n\nQuesta azione è irreversibile.`)) {
+    if (!confirm(`Sei sicuro di voler eliminare la scheda "${nomeScheda}"?`)) {
       return;
     }
     
@@ -59,8 +59,6 @@ export default function SchedeListPage() {
 
     if (!error) {
       setSchede(schede.filter(s => s.id !== schedaId));
-    } else {
-      alert('Errore durante l\'eliminazione della scheda');
     }
   };
 
@@ -93,7 +91,7 @@ export default function SchedeListPage() {
           </h1>
           <p className="section-subtitle">Gestisci i tuoi programmi di allenamento personalizzati</p>
         </div>
-        <Link href="/schede/crea" className="btn-primary mt-4 md:mt-0">
+        <Link href="/CreaSchedaPage" className="btn-primary mt-4 md:mt-0">
           <Plus className="w-5 h-5" />
           NUOVA SCHEDA
         </Link>
@@ -106,9 +104,9 @@ export default function SchedeListPage() {
           </div>
           <h3 className="text-2xl font-bold text-white mb-4">Nessuna scheda creata</h3>
           <p className="text-zinc-400 mb-8 max-w-md mx-auto">
-            Crea la tua prima scheda di allenamento personalizzata per iniziare a tracciare i tuoi progressi
+            Crea la tua prima scheda di allenamento personalizzata
           </p>
-          <Link href="/schede/crea" className="btn-primary inline-flex">
+          <Link href="/CreaSchedaPage" className="btn-primary inline-flex">
             <Plus className="w-5 h-5" />
             CREA LA TUA PRIMA SCHEDA
           </Link>
@@ -176,21 +174,19 @@ export default function SchedeListPage() {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => attivaDisattivaScheda(scheda.id, scheda.scheda_attiva)}
-                    className="text-zinc-400 hover:text-gym-red transition-colors text-sm font-semibold"
-                    title={scheda.scheda_attiva ? 'Disattiva scheda' : 'Attiva scheda'}
+                    className="text-zinc-400 hover:text-gym-red transition-colors"
                   >
                     {scheda.scheda_attiva ? <XCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
                   </button>
                   <button
                     onClick={() => eliminaScheda(scheda.id, scheda.nome_scheda)}
                     className="text-zinc-400 hover:text-red-500 transition-colors"
-                    title="Elimina scheda"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
                 <Link
-                  href={`/schede/dettaglio?id=${scheda.id}`}
+                  href={`/SchedaDettaglioPage?id=${scheda.id}`}
                   className="text-gym-red hover:text-gym-red-light font-semibold text-sm uppercase tracking-wide transition-colors"
                 >
                   Visualizza →

@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Edit, Trash2, CheckCircle2 } from 'lucide-react';
-import { creaClientSupabase } from '../../../lib/supabaseClient';
+import { creaClientSupabase } from '../lib/supabaseClient';
 
-export default function DettaglioSchedaPage() {
+export default function SchedaDettaglioPage() {
   const [scheda, setScheda] = useState(null);
   const [esercizi, setEsercizi] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
@@ -24,7 +24,7 @@ export default function DettaglioSchedaPage() {
   const caricaDettaglioScheda = async () => {
     const {  { user } } = await supabase.auth.getUser();
     if (!user) {
-      router.push('/login');
+      router.push('/LoginPage');
       return;
     }
 
@@ -36,7 +36,7 @@ export default function DettaglioSchedaPage() {
       .single();
 
     if (schedaError || !schedaData) {
-      router.push('/schede');
+      router.push('/SchedeListPage');
       return;
     }
 
@@ -67,7 +67,7 @@ export default function DettaglioSchedaPage() {
       .eq('id', schedaId);
 
     if (!error) {
-      router.push('/schede');
+      router.push('/SchedeListPage');
     }
   };
 
@@ -95,7 +95,7 @@ export default function DettaglioSchedaPage() {
       <div className="page-container">
         <div className="card text-center py-16">
           <h3 className="text-2xl font-bold text-white mb-4">Scheda non trovata</h3>
-          <Link href="/schede" className="btn-primary inline-flex">
+          <Link href="/SchedeListPage" className="btn-primary inline-flex">
             Torna alle Schede
           </Link>
         </div>
@@ -110,7 +110,7 @@ export default function DettaglioSchedaPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between section-header gap-4">
         <div className="flex items-center space-x-4">
-          <Link href="/schede" className="btn-secondary p-3">
+          <Link href="/SchedeListPage" className="btn-secondary p-3">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -129,7 +129,7 @@ export default function DettaglioSchedaPage() {
             </span>
           )}
           <Link
-            href={`/schede/modifica?id=${schedaId}`}
+            href={`/ModificaSchedaPage?id=${schedaId}`}
             className="btn-secondary"
           >
             <Edit className="w-5 h-5" />
