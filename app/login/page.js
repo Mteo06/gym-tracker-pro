@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { creaClientSupabase } from '@/lib/supabaseClient';
+import { creaClientSupabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Dumbbell, Mail, Lock, AlertCircle, Zap } from 'lucide-react';
@@ -38,7 +38,7 @@ export default function LoginPage() {
       router.push('/');
       router.refresh();
     }
-    
+
     setCaricamento(false);
   };
 

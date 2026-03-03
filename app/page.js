@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { creaClientSupabase } from '../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import WeightChart from '../components/WeightChart';
-import { 
-  TrendingDown, 
-  TrendingUp, 
-  Scale, 
-  Plus, 
-  Target, 
-  Calendar, 
-  Flame, 
+import RestTimer from '../components/RestTimer';
+import confetti from 'canvas-confetti';
+import {
+  TrendingDown,
+  TrendingUp,
+  Scale,
+  Plus,
+  Target,
+  Calendar,
+  Flame,
   Activity,
   Dumbbell,
   CheckCircle2,
@@ -27,11 +29,11 @@ export default function DashboardPage() {
   const [misurazioniPeso, setMisurazioniPeso] = useState([]);
   const [nuovoPesoInput, setNuovoPesoInput] = useState('');
   const [dataPesoInput, setDataPesoInput] = useState(new Date().toISOString().split('T')[0]);
-  const [statistiche, setStatistiche] = useState({ 
-    variazione: 0, 
-    pesoAttuale: 0, 
+  const [statistiche, setStatistiche] = useState({
+    variazione: 0,
+    pesoAttuale: 0,
     pesoIniziale: 0,
-    totaleAllenamenti: 0 
+    totaleAllenamenti: 0
   });
   const [schedaOggi, setSchedaOggi] = useState(null);
   const [eserciziOggi, setEserciziOggi] = useState([]);
@@ -39,6 +41,13 @@ export default function DashboardPage() {
   const [sessioneId, setSessioneId] = useState(null);
   const [caricamento, setCaricamento] = useState(true);
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
+
+  // Timer states
+  const [timerInEsecuzione, setTimerInEsecuzione] = useState(false);
+  const [timerSecondi, setTimerSecondi] = useState(90);
+
+  const prevCompletamentoRef = useRef(0);
+
   const router = useRouter();
   const supabase = creaClientSupabase();
 
@@ -72,7 +81,7 @@ export default function DashboardPage() {
 
     if (!error && data) {
       setMisurazioniPeso(data);
-      
+
       if (data.length > 0) {
         const pesoAttuale = parseFloat(data[data.length - 1].valore_peso);
         const pesoIniziale = parseFloat(data[0].valore_peso);
@@ -135,7 +144,7 @@ export default function DashboardPage() {
 
     if (sessioneEsistente) {
       setSessioneId(sessioneEsistente.id);
-      
+
       // Carica esercizi già completati
       const { data: completati } = await supabase
         .from('serie_eseguite')
@@ -149,9 +158,12 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleEsercizio = async (esercizioId) => {
+  const toggleEsercizio = async (esercizio) => {
+    const esercizioId = esercizio.id;
+    let newSessionId = sessioneId;
+
     // Crea sessione se non esiste
-    if (!sessioneId) {
+    if (!newSessionId) {
       const { data: nuovaSessione } = await supabase
         .from('sessioni_allenamento')
         .insert([{
@@ -164,28 +176,32 @@ export default function DashboardPage() {
         .single();
 
       if (nuovaSessione) {
-        setSessioneId(nuovaSessione.id);
+        newSessionId = nuovaSessione.id;
+        setSessioneId(newSessionId);
       }
     }
 
     // Toggle completamento
+    let nuoviCompletati = [];
     if (eserciziCompletati.includes(esercizioId)) {
       // Rimuovi
       await supabase
         .from('serie_eseguite')
         .delete()
-        .eq('sessione_id', sessioneId)
+        .eq('sessione_id', newSessionId)
         .eq('esercizio_id', esercizioId);
 
-      setEserciziCompletati(eserciziCompletati.filter(id => id !== esercizioId));
+      nuoviCompletati = eserciziCompletati.filter(id => id !== esercizioId);
+      setEserciziCompletati(nuoviCompletati);
+      // Disattiva timer se si deseleziona (opzionale)
+      setTimerInEsecuzione(false);
     } else {
       // Aggiungi
-      const esercizio = eserciziOggi.find(e => e.id === esercizioId);
       const serie = [];
-      
+
       for (let i = 1; i <= esercizio.numero_serie; i++) {
         serie.push({
-          sessione_id: sessioneId,
+          sessione_id: newSessionId,
           esercizio_id: esercizioId,
           numero_serie: i,
           ripetizioni_effettuate: parseInt(esercizio.numero_ripetizioni) || 10,
@@ -195,40 +211,52 @@ export default function DashboardPage() {
       }
 
       await supabase.from('serie_eseguite').insert(serie);
-      setEserciziCompletati([...eserciziCompletati, esercizioId]);
+      nuoviCompletati = [...eserciziCompletati, esercizioId];
+      setEserciziCompletati(nuoviCompletati);
+
+      // Estrai il timer predefinito dall'esercizio oppure usa 90
+      let pausa = 90;
+      if (esercizio.tempo_pausa) {
+        const parsed = parseInt(esercizio.tempo_pausa);
+        if (!isNaN(parsed)) {
+          // assumi secondi base se non ha "min"
+          pausa = esercizio.tempo_pausa.includes('min') ? parsed * 60 : parsed;
+        }
+      }
+      setTimerSecondi(pausa);
+      setTimerInEsecuzione(true); // Fai apparire il timer
     }
 
     // Verifica se tutti completati
-    const nuoviCompletati = eserciziCompletati.includes(esercizioId)
-      ? eserciziCompletati.filter(id => id !== esercizioId)
-      : [...eserciziCompletati, esercizioId];
+    const percentualeNuova = (nuoviCompletati.length / eserciziOggi.length) * 100;
 
     if (nuoviCompletati.length === eserciziOggi.length && eserciziOggi.length > 0) {
       // Segna sessione come completata
       await supabase
         .from('sessioni_allenamento')
         .update({ sessione_completata: true })
-        .eq('id', sessioneId);
+        .eq('id', newSessionId);
     } else {
       // Segna come non completata se rimuovi spunte
       await supabase
         .from('sessioni_allenamento')
         .update({ sessione_completata: false })
-        .eq('id', sessioneId);
+        .eq('id', newSessionId);
     }
   };
 
   const salvaNuovoPeso = async (e) => {
     e.preventDefault();
+    if (salvataggioInCorso) return; // Prevent double submit
     setSalvataggioInCorso(true);
 
     const { error } = await supabase
       .from('misurazioni_peso')
       .insert([
-        { 
-          utente_id: utenteCorrente.id, 
-          valore_peso: parseFloat(nuovoPesoInput), 
-          data_misurazione: dataPesoInput 
+        {
+          utente_id: utenteCorrente.id,
+          valore_peso: parseFloat(nuovoPesoInput),
+          data_misurazione: dataPesoInput
         }
       ]);
 
@@ -236,9 +264,29 @@ export default function DashboardPage() {
       setNuovoPesoInput('');
       await caricaMisurazioniPeso(utenteCorrente.id);
     }
-    
+
     setSalvataggioInCorso(false);
   };
+
+  const oggiGiornoNome = giorniSettimana[getDay(new Date())];
+  const percentualeCompletamento = eserciziOggi.length > 0
+    ? Math.round((eserciziCompletati.length / eserciziOggi.length) * 100)
+    : 0;
+
+  // Trigger confetti only when going from < 100 to 100
+  useEffect(() => {
+    if (percentualeCompletamento === 100 && prevCompletamentoRef.current < 100) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#E63946', '#2a9d8f', '#e9c46a', '#f4a261', '#FFFFFF']
+      });
+      // Chiudi il timer se finisce
+      setTimerInEsecuzione(false);
+    }
+    prevCompletamentoRef.current = percentualeCompletamento;
+  }, [percentualeCompletamento]);
 
   if (caricamento) {
     return (
@@ -248,13 +296,17 @@ export default function DashboardPage() {
     );
   }
 
-  const oggiGiornoNome = giorniSettimana[getDay(new Date())];
-  const percentualeCompletamento = eserciziOggi.length > 0 
-    ? Math.round((eserciziCompletati.length / eserciziOggi.length) * 100) 
-    : 0;
-
   return (
-    <div className="page-container">
+    <div className="page-container relative pb-24">
+      {/* Timer Pausa Floating */}
+      {timerInEsecuzione && (
+        <RestTimer
+          key={Date.now()} // Force remount if timer starts again to reset state
+          initialSeconds={timerSecondi}
+          chiudi={() => setTimerInEsecuzione(false)}
+        />
+      )}
+
       {/* Header Dashboard */}
       <div className="section-header text-center">
         <h1 className="section-title">
@@ -284,7 +336,7 @@ export default function DashboardPage() {
               </div>
             </div>
             {percentualeCompletamento === 100 && (
-              <div className="bg-green-600 text-white px-6 py-3 rounded-full font-black flex items-center space-x-2">
+              <div className="bg-green-600 text-white px-6 py-3 rounded-full font-black flex items-center space-x-2 shadow-lg shadow-green-900/50">
                 <Trophy className="w-5 h-5" />
                 <span>COMPLETATO!</span>
               </div>
@@ -298,10 +350,10 @@ export default function DashboardPage() {
               <span className="text-sm font-bold text-gym-red">{percentualeCompletamento}%</span>
             </div>
             <div className="w-full bg-zinc-800 rounded-full h-3 overflow-hidden">
-              <div 
-                className="bg-gym-red h-full rounded-full transition-all duration-500"
+              <div
+                className="bg-gym-red h-full rounded-full transition-all duration-1000 ease-out"
                 style={{ width: `${percentualeCompletamento}%` }}
-              ></div>
+              />
             </div>
           </div>
 
@@ -309,21 +361,19 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {eserciziOggi.map((esercizio) => {
               const completato = eserciziCompletati.includes(esercizio.id);
-              
+
               return (
                 <button
                   key={esercizio.id}
-                  onClick={() => toggleEsercizio(esercizio.id)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                    completato
-                      ? 'bg-green-900/30 border-green-600'
-                      : 'bg-zinc-800 border-zinc-700 hover:border-gym-red'
-                  }`}
+                  onClick={() => toggleEsercizio(esercizio)}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${completato
+                    ? 'bg-green-900/30 border-green-600 shadow-green-900/20'
+                    : 'bg-zinc-800 border-zinc-700 hover:border-gym-red hover:bg-zinc-800/80 shadow-lg'
+                    }`}
                 >
                   <div className="flex items-start space-x-4">
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      completato ? 'bg-green-600' : 'bg-zinc-700'
-                    }`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${completato ? 'bg-green-600' : 'bg-zinc-700'
+                      }`}>
                       {completato ? (
                         <CheckCircle2 className="w-5 h-5 text-white" />
                       ) : (
@@ -332,12 +382,11 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex-1">
-                      <h3 className={`text-lg font-bold mb-1 ${
-                        completato ? 'text-green-400 line-through' : 'text-white'
-                      }`}>
+                      <h3 className={`text-lg font-bold mb-1 transition-colors ${completato ? 'text-green-400 line-through opacity-70' : 'text-white'
+                        }`}>
                         {esercizio.nome_esercizio}
                       </h3>
-                      <div className="flex flex-wrap gap-3 text-sm">
+                      <div className={`flex flex-wrap gap-3 text-sm ${completato ? 'opacity-50' : ''}`}>
                         <span className="text-zinc-400">
                           {esercizio.numero_serie} serie × {esercizio.numero_ripetizioni} rip
                         </span>
@@ -360,7 +409,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                       {esercizio.note_tecniche && (
-                        <p className="text-xs text-zinc-500 mt-2 italic">
+                        <p className={`text-xs text-zinc-500 mt-2 italic ${completato ? 'hidden' : ''}`}>
                           {esercizio.note_tecniche}
                         </p>
                       )}
@@ -398,32 +447,32 @@ export default function DashboardPage() {
 
       {/* Cards Statistiche */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="card-stats">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gym-red opacity-10 rounded-full -mr-16 -mt-16"></div>
+        <div className="card-stats hover:-translate-y-2 transition-transform duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gym-red opacity-10 rounded-full -mr-16 -mt-16 blur-xl"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
             <Scale className="w-8 h-8 text-gym-red" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Peso Attuale</span>
           </div>
           <p className="text-4xl font-black text-white relative z-10">
             {statistiche.pesoAttuale ? statistiche.pesoAttuale.toFixed(1) : '-'}
-            <span className="text-2xl text-zinc-500"> kg</span>
+            <span className="text-2xl text-zinc-500 font-medium"> kg</span>
           </p>
         </div>
 
-        <div className="card-stats">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 opacity-10 rounded-full -mr-16 -mt-16"></div>
+        <div className="card-stats hover:-translate-y-2 transition-transform duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 opacity-10 rounded-full -mr-16 -mt-16 blur-xl"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
             <Target className="w-8 h-8 text-blue-600" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Peso Iniziale</span>
           </div>
           <p className="text-4xl font-black text-white relative z-10">
             {statistiche.pesoIniziale ? statistiche.pesoIniziale.toFixed(1) : '-'}
-            <span className="text-2xl text-zinc-500"> kg</span>
+            <span className="text-2xl text-zinc-500 font-medium"> kg</span>
           </p>
         </div>
 
-        <div className="card-stats">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-600 opacity-10 rounded-full -mr-16 -mt-16"></div>
+        <div className="card-stats hover:-translate-y-2 transition-transform duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-600 opacity-10 rounded-full -mr-16 -mt-16 blur-xl"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
             {statistiche.variazione >= 0 ? (
               <TrendingUp className="w-8 h-8 text-green-600" />
@@ -435,19 +484,19 @@ export default function DashboardPage() {
           <p className="text-4xl font-black text-white relative z-10">
             {statistiche.variazione > 0 ? '+' : ''}
             {statistiche.variazione ? statistiche.variazione.toFixed(1) : '0.0'}
-            <span className="text-2xl text-zinc-500"> kg</span>
+            <span className="text-2xl text-zinc-500 font-medium"> kg</span>
           </p>
         </div>
 
-        <div className="card-stats">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600 opacity-10 rounded-full -mr-16 -mt-16"></div>
+        <div className="card-stats hover:-translate-y-2 transition-transform duration-300">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600 opacity-10 rounded-full -mr-16 -mt-16 blur-xl"></div>
           <div className="flex items-center justify-between mb-4 relative z-10">
             <Activity className="w-8 h-8 text-purple-600" />
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Allenamenti</span>
           </div>
           <p className="text-4xl font-black text-white relative z-10">
             {statistiche.totaleAllenamenti}
-            <span className="text-2xl text-zinc-500"> tot</span>
+            <span className="text-2xl text-zinc-500 font-medium"> tot</span>
           </p>
         </div>
       </div>
@@ -499,8 +548,8 @@ export default function DashboardPage() {
             />
           </div>
           <div className="flex items-end">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn-primary whitespace-nowrap"
               disabled={salvataggioInCorso}
             >

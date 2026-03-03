@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { creaClientSupabase } from '@/lib/supabaseClient';
+import { creaClientSupabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Dumbbell, Mail, Lock, User, AlertCircle } from 'lucide-react';
@@ -61,8 +61,8 @@ export default function RegisterPage() {
 
     if (error) {
       setErrore(
-        error.message === 'User already registered' 
-          ? 'Email già registrata. Prova ad accedere.' 
+        error.message === 'User already registered'
+          ? 'Email già registrata. Prova ad accedere.'
           : error.message
       );
       setCaricamento(false);
@@ -74,7 +74,7 @@ export default function RegisterPage() {
       const { error: profiloError } = await supabase
         .from('profili')
         .insert([
-          { 
+          {
             id: data.user.id,
             nome: nome,
             cognome: cognome,

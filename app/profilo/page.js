@@ -12,7 +12,7 @@ export default function ProfiloPage() {
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   const [errore, setErrore] = useState('');
   const [successo, setSuccesso] = useState('');
-  
+
   const [formData, setFormData] = useState({
     nome: '',
     cognome: '',
@@ -30,7 +30,7 @@ export default function ProfiloPage() {
 
   const caricaProfilo = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       router.push('/login');
       return;
@@ -78,56 +78,60 @@ export default function ProfiloPage() {
 
   const salvaProfilo = async (e) => {
     e.preventDefault();
+    if (salvataggioInCorso) return;
+
     setErrore('');
     setSuccesso('');
     setSalvataggioInCorso(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
 
-    // Aggiorna il profilo
-    const { error: profiloError } = await supabase
-      .from('profili')
-      .update({
-        nome: formData.nome,
-        cognome: formData.cognome,
-        email: formData.email,
-        sesso: formData.sesso,
-        altezza: formData.altezza ? parseFloat(formData.altezza) : null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id);
+      // Aggiorna il profilo
+      const { error: profiloError } = await supabase
+        .from('profili')
+        .update({
+          nome: formData.nome,
+          cognome: formData.cognome,
+          email: formData.email,
+          sesso: formData.sesso,
+          altezza: formData.altezza ? parseFloat(formData.altezza) : null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
 
-    if (profiloError) {
-      setErrore('Errore nel salvataggio: ' + profiloError.message);
-      setSalvataggioInCorso(false);
-      return;
-    }
+      if (profiloError) throw new Error('Errore nel salvataggio profilo: ' + profiloError.message);
 
-    // Aggiorna anche i metadata nell'auth
-    const { error: metadataError } = await supabase.auth.updateUser({
-      data: {
-        nome: formData.nome,
-        cognome: formData.cognome
-      }
-    });
-
-    // Aggiorna email se cambiata
-    if (formData.email !== profilo.email) {
-      const { error: emailError } = await supabase.auth.updateUser({
-        email: formData.email
+      // Aggiorna anche i metadata nell'auth
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          nome: formData.nome,
+          cognome: formData.cognome
+        }
       });
 
-      if (emailError) {
-        setErrore('Profilo aggiornato ma errore nell\'aggiornamento email: ' + emailError.message);
+      if (metadataError) throw new Error('Errore aggiornamento dati account: ' + metadataError.message);
+
+      // Aggiorna email se cambiata
+      const emailCorrente = profilo?.email || user.email;
+      if (formData.email !== emailCorrente) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: formData.email
+        });
+
+        if (emailError) throw new Error('Errore aggiornamento email: ' + emailError.message);
       }
+
+      setSuccesso('Profilo aggiornato con successo!');
+      await caricaProfilo();
+      setModalitaModifica(false);
+
+      setTimeout(() => setSuccesso(''), 3000);
+    } catch (err) {
+      setErrore(err.message);
+    } finally {
+      setSalvataggioInCorso(false);
     }
-
-    setSuccesso('Profilo aggiornato con successo!');
-    await caricaProfilo();
-    setModalitaModifica(false);
-    setSalvataggioInCorso(false);
-
-    setTimeout(() => setSuccesso(''), 3000);
   };
 
   const logout = async () => {
@@ -143,8 +147,8 @@ export default function ProfiloPage() {
     );
   }
 
-  const nomeCompleto = profilo?.nome && profilo?.cognome 
-    ? `${profilo.nome} ${profilo.cognome}` 
+  const nomeCompleto = profilo?.nome && profilo?.cognome
+    ? `${profilo.nome} ${profilo.cognome}`
     : 'Nome non impostato';
 
   return (

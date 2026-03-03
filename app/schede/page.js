@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { creaClientSupabase } from '@/lib/supabaseClient';
+import { creaClientSupabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, ClipboardList, Calendar, Dumbbell, Trash2, CheckCircle2, XCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function SchedeListPage() {
   const [schede, setSchede] = useState([]);
@@ -51,7 +52,7 @@ export default function SchedeListPage() {
     if (!confirm(`Sei sicuro di voler eliminare la scheda "${nomeScheda}"?\n\nQuesta azione è irreversibile.`)) {
       return;
     }
-    
+
     const { error } = await supabase
       .from('schede_allenamento')
       .delete()
@@ -84,6 +85,21 @@ export default function SchedeListPage() {
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div className="page-container">
       {/* Header */}
@@ -102,7 +118,12 @@ export default function SchedeListPage() {
 
       {/* Lista Schede */}
       {schede.length === 0 ? (
-        <div className="card text-center py-16 animate-slide-in">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="card text-center py-16"
+        >
           <div className="bg-zinc-800 w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6">
             <ClipboardList className="w-16 h-16 text-zinc-600" />
           </div>
@@ -114,14 +135,19 @@ export default function SchedeListPage() {
             <Plus className="w-5 h-5" />
             CREA LA TUA PRIMA SCHEDA
           </Link>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {schede.map((scheda, index) => (
-            <div 
-              key={scheda.id} 
-              className="card-hover group animate-slide-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {schede.map((scheda) => (
+            <motion.div
+              key={scheda.id}
+              variants={itemVariants}
+              className="card-hover group"
             >
               {/* Header Card */}
               <div className="flex items-start justify-between mb-4">
@@ -205,9 +231,9 @@ export default function SchedeListPage() {
                   Visualizza →
                 </Link>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

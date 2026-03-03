@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { creaClientSupabase } from '../../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Save, Calendar, GripVertical, Dumbbell, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CreaSchedaPage() {
   const [nomeScheda, setNomeScheda] = useState('');
@@ -27,6 +28,7 @@ export default function CreaSchedaPage() {
 
   const aggiungiEsercizio = () => {
     setEsercizi([...esercizi, {
+      id_locale: Date.now().toString(), // Used as unique key for AnimatePresence
       giorno_settimana: giorniSelezionati[0] || '',
       nome_esercizio: '',
       numero_serie: 3,
@@ -51,6 +53,8 @@ export default function CreaSchedaPage() {
 
   const salvaScheda = async (e) => {
     e.preventDefault();
+    if (caricamento) return; // Fix for double-submit
+
     setErrore('');
 
     if (giorniSelezionati.length === 0) {
@@ -77,53 +81,53 @@ export default function CreaSchedaPage() {
       return;
     }
 
-    const { data: schedaData, error: schedaError } = await supabase
-      .from('schede_allenamento')
-      .insert([
-        { 
-          utente_id: user.id, 
-          nome_scheda: nomeScheda, 
-          descrizione: descrizione || null,
-          giorni_settimana: giorniSelezionati, 
-          scheda_attiva: true 
-        }
-      ])
-      .select()
-      .single();
+    try {
+      const { data: schedaData, error: schedaError } = await supabase
+        .from('schede_allenamento')
+        .insert([
+          {
+            utente_id: user.id,
+            nome_scheda: nomeScheda,
+            descrizione: descrizione || null,
+            giorni_settimana: giorniSelezionati,
+            scheda_attiva: true
+          }
+        ])
+        .select()
+        .single();
 
-    if (schedaError) {
-      setErrore('Errore nel salvataggio della scheda: ' + schedaError.message);
-      setCaricamento(false);
-      return;
-    }
-
-    if (esercizi.length > 0) {
-      const eserciziFormattati = esercizi.map(ex => ({
-        scheda_id: schedaData.id,
-        giorno_settimana: ex.giorno_settimana,
-        nome_esercizio: ex.nome_esercizio,
-        numero_serie: parseInt(ex.numero_serie) || 3,
-        numero_ripetizioni: ex.numero_ripetizioni,
-        peso_utilizzato: ex.peso_utilizzato ? parseFloat(ex.peso_utilizzato) : null,
-        note_tecniche: ex.note_tecniche || null,
-        tempo_pausa: ex.tempo_pausa || null,
-        gruppo_muscolare: ex.gruppo_muscolare || null,
-        ordine_esecuzione: ex.ordine_esecuzione
-      }));
-
-      const { error: eserciziError } = await supabase
-        .from('esercizi_scheda')
-        .insert(eserciziFormattati);
-
-      if (eserciziError) {
-        setErrore('Errore nel salvataggio degli esercizi: ' + eserciziError.message);
-        setCaricamento(false);
-        return;
+      if (schedaError) {
+        throw new Error('Errore nel salvataggio della scheda: ' + schedaError.message);
       }
-    }
 
-    router.push('/schede');
-    setCaricamento(false);
+      if (esercizi.length > 0) {
+        const eserciziFormattati = esercizi.map(ex => ({
+          scheda_id: schedaData.id,
+          giorno_settimana: ex.giorno_settimana,
+          nome_esercizio: ex.nome_esercizio,
+          numero_serie: parseInt(ex.numero_serie) || 3,
+          numero_ripetizioni: ex.numero_ripetizioni,
+          peso_utilizzato: ex.peso_utilizzato ? parseFloat(ex.peso_utilizzato) : null,
+          note_tecniche: ex.note_tecniche || null,
+          tempo_pausa: ex.tempo_pausa || null,
+          gruppo_muscolare: ex.gruppo_muscolare || null,
+          ordine_esecuzione: ex.ordine_esecuzione
+        }));
+
+        const { error: eserciziError } = await supabase
+          .from('esercizi_scheda')
+          .insert(eserciziFormattati);
+
+        if (eserciziError) {
+          throw new Error('Errore nel salvataggio degli esercizi: ' + eserciziError.message);
+        }
+      }
+
+      router.push('/schede');
+    } catch (err) {
+      setErrore(err.message);
+      setCaricamento(false);
+    }
   };
 
   const toggleGiorno = (giorno) => {
@@ -147,7 +151,7 @@ export default function CreaSchedaPage() {
         {/* Informazioni Base */}
         <div className="card animate-slide-in">
           <h2 className="text-2xl font-black text-white mb-6 uppercase">Informazioni Base</h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="label">Nome Scheda *</label>
@@ -180,18 +184,17 @@ export default function CreaSchedaPage() {
             <Calendar className="w-6 h-6 mr-2 text-gym-red" />
             Giorni di Allenamento *
           </h2>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {giorniSettimana.map(giorno => (
               <button
                 key={giorno}
                 type="button"
                 onClick={() => toggleGiorno(giorno)}
-                className={`p-4 rounded-lg border-2 text-center font-bold transition-all ${
-                  giorniSelezionati.includes(giorno)
-                    ? 'bg-gym-red border-gym-red text-white shadow-gym'
-                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-gym-red'
-                }`}
+                className={`p-4 rounded-lg border-2 text-center font-bold transition-all ${giorniSelezionati.includes(giorno)
+                  ? 'bg-gym-red border-gym-red text-white shadow-gym scale-105'
+                  : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-gym-red'
+                  }`}
               >
                 <div className="text-xs uppercase tracking-wide">{giorno.slice(0, 3)}</div>
               </button>
@@ -235,139 +238,148 @@ export default function CreaSchedaPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {esercizi.map((ex, index) => (
-                <div 
-                  key={index} 
-                  ref={index === esercizi.length - 1 ? ultimoEsercizioRef : null}
-                  className="bg-zinc-800 p-6 rounded-lg border border-zinc-700 relative"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <GripVertical className="w-5 h-5 text-zinc-600" />
-                      <span className="text-sm font-bold text-zinc-500">ESERCIZIO #{index + 1}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => rimuoviEsercizio(index)}
-                      className="text-red-600 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+              <AnimatePresence>
+                {esercizi.map((ex, index) => (
+                  <motion.div
+                    key={ex.id_locale}
+                    initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                    transition={{ duration: 0.3 }}
+                    ref={index === esercizi.length - 1 ? ultimoEsercizioRef : null}
+                    className="bg-zinc-800 p-6 rounded-lg border border-zinc-700 relative overflow-hidden group"
+                  >
+                    <div className="absolute top-0 left-0 w-1 h-full bg-gym-red opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Giorno *</label>
-                      <select
-                        value={ex.giorno_settimana}
-                        onChange={(e) => aggiornaEsercizio(index, 'giorno_settimana', e.target.value)}
-                        className="select-field"
-                        required
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <GripVertical className="w-5 h-5 text-zinc-600" />
+                        <span className="text-sm font-bold text-zinc-500">ESERCIZIO #{index + 1}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => rimuoviEsercizio(index)}
+                        className="text-red-600 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-zinc-700"
+                        title="Rimuovi Esercizio"
                       >
-                        <option value="">Seleziona giorno</option>
-                        {giorniSelezionati.map(g => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
 
-                    <div>
-                      <label className="label">Nome Esercizio *</label>
-                      <input
-                        type="text"
-                        value={ex.nome_esercizio}
-                        onChange={(e) => aggiornaEsercizio(index, 'nome_esercizio', e.target.value)}
-                        placeholder="es: Panca Piana, Squat..."
-                        className="input-field"
-                        required
-                      />
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">Giorno *</label>
+                        <select
+                          value={ex.giorno_settimana}
+                          onChange={(e) => aggiornaEsercizio(index, 'giorno_settimana', e.target.value)}
+                          className="select-field"
+                          required
+                        >
+                          <option value="">Seleziona giorno</option>
+                          {giorniSelezionati.map(g => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div>
-                      <label className="label">Gruppo Muscolare</label>
-                      <select
-                        value={ex.gruppo_muscolare}
-                        onChange={(e) => aggiornaEsercizio(index, 'gruppo_muscolare', e.target.value)}
-                        className="select-field"
-                      >
-                        <option value="">Seleziona gruppo</option>
-                        {gruppiMuscolari.map(gruppo => (
-                          <option key={gruppo} value={gruppo}>{gruppo}</option>
-                        ))}
-                      </select>
-                    </div>
+                      <div>
+                        <label className="label">Nome Esercizio *</label>
+                        <input
+                          type="text"
+                          value={ex.nome_esercizio}
+                          onChange={(e) => aggiornaEsercizio(index, 'nome_esercizio', e.target.value)}
+                          placeholder="es: Panca Piana, Squat..."
+                          className="input-field"
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <label className="label">Serie *</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={ex.numero_serie}
-                        onChange={(e) => aggiornaEsercizio(index, 'numero_serie', e.target.value)}
-                        placeholder="3"
-                        className="input-field"
-                        required
-                      />
-                    </div>
+                      <div>
+                        <label className="label">Gruppo Muscolare</label>
+                        <select
+                          value={ex.gruppo_muscolare}
+                          onChange={(e) => aggiornaEsercizio(index, 'gruppo_muscolare', e.target.value)}
+                          className="select-field"
+                        >
+                          <option value="">Seleziona gruppo</option>
+                          {gruppiMuscolari.map(gruppo => (
+                            <option key={gruppo} value={gruppo}>{gruppo}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div>
-                      <label className="label">Ripetizioni *</label>
-                      <input
-                        type="text"
-                        value={ex.numero_ripetizioni}
-                        onChange={(e) => aggiornaEsercizio(index, 'numero_ripetizioni', e.target.value)}
-                        placeholder="8-12"
-                        className="input-field"
-                        required
-                      />
-                    </div>
+                      <div>
+                        <label className="label">Serie *</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={ex.numero_serie}
+                          onChange={(e) => aggiornaEsercizio(index, 'numero_serie', e.target.value)}
+                          placeholder="3"
+                          className="input-field"
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <label className="label">Peso (kg)</label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={ex.peso_utilizzato}
-                        onChange={(e) => aggiornaEsercizio(index, 'peso_utilizzato', e.target.value)}
-                        placeholder="60"
-                        className="input-field"
-                      />
-                    </div>
+                      <div>
+                        <label className="label">Ripetizioni *</label>
+                        <input
+                          type="text"
+                          value={ex.numero_ripetizioni}
+                          onChange={(e) => aggiornaEsercizio(index, 'numero_ripetizioni', e.target.value)}
+                          placeholder="8-12"
+                          className="input-field"
+                          required
+                        />
+                      </div>
 
-                    <div>
-                      <label className="label">Tempo di Pausa</label>
-                      <input
-                        type="text"
-                        value={ex.tempo_pausa}
-                        onChange={(e) => aggiornaEsercizio(index, 'tempo_pausa', e.target.value)}
-                        placeholder="90s, 2min..."
-                        className="input-field"
-                      />
-                    </div>
+                      <div>
+                        <label className="label">Peso (kg)</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={ex.peso_utilizzato}
+                          onChange={(e) => aggiornaEsercizio(index, 'peso_utilizzato', e.target.value)}
+                          placeholder="60"
+                          className="input-field"
+                        />
+                      </div>
 
-                    <div className="md:col-span-2">
-                      <label className="label">Note Tecniche</label>
-                      <textarea
-                        value={ex.note_tecniche}
-                        onChange={(e) => aggiornaEsercizio(index, 'note_tecniche', e.target.value)}
-                        placeholder="es: Focus eccentrica lenta..."
-                        className="textarea-field"
-                        rows="2"
-                      />
+                      <div>
+                        <label className="label">Tempo di Pausa</label>
+                        <input
+                          type="text"
+                          value={ex.tempo_pausa}
+                          onChange={(e) => aggiornaEsercizio(index, 'tempo_pausa', e.target.value)}
+                          placeholder="90s, 2min..."
+                          className="input-field"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="label">Note Tecniche</label>
+                        <textarea
+                          value={ex.note_tecniche}
+                          onChange={(e) => aggiornaEsercizio(index, 'note_tecniche', e.target.value)}
+                          placeholder="es: Focus eccentrica lenta..."
+                          className="textarea-field"
+                          rows="2"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
               {/* Bottone anche in fondo */}
               <button
                 type="button"
                 onClick={aggiungiEsercizio}
-                className="btn-secondary w-full"
+                className="btn-secondary w-full border-dashed"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-5 h-5 mr-2" />
                 Aggiungi Altro Esercizio
               </button>
             </div>
@@ -375,10 +387,14 @@ export default function CreaSchedaPage() {
         </div>
 
         {errore && (
-          <div className="alert-error flex items-start">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="alert-error flex items-start"
+          >
             <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
             <span>{errore}</span>
-          </div>
+          </motion.div>
         )}
 
         <div className="flex flex-col sm:flex-row justify-end gap-4">

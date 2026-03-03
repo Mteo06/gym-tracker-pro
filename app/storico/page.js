@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { creaClientSupabase } from '@/lib/supabaseClient';
+import { creaClientSupabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { History, Calendar, Clock, Dumbbell, TrendingUp, Award, Filter, Search } from 'lucide-react';
 import { format } from 'date-fns';
@@ -55,15 +55,15 @@ export default function StoricoPage() {
     if (!allError && allData) {
       setAllenamenti(allData);
       setAllenamentiFiltrati(allData);
-      
+
       // Calcola statistiche
       const totale = allData.length;
       const minutiTot = allData.reduce((acc, curr) => acc + (curr.durata_minuti || 0), 0);
       const intensitaMedia = allData.filter(a => a.valutazione_intensita).length > 0
-        ? allData.reduce((acc, curr) => acc + (curr.valutazione_intensita || 0), 0) / 
-          allData.filter(a => a.valutazione_intensita).length
+        ? allData.reduce((acc, curr) => acc + (curr.valutazione_intensita || 0), 0) /
+        allData.filter(a => a.valutazione_intensita).length
         : 0;
-      
+
       setStatistiche({
         totaleAllenamenti: totale,
         minutiTotali: minutiTot,
@@ -91,7 +91,7 @@ export default function StoricoPage() {
 
     // Filtro per scheda
     if (filtroScheda !== 'tutte') {
-      risultati = risultati.filter(all => 
+      risultati = risultati.filter(all =>
         all.schede_allenamento?.id === filtroScheda
       );
     }
@@ -187,7 +187,7 @@ export default function StoricoPage() {
             <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Media Durata</span>
           </div>
           <p className="text-4xl font-black text-white relative z-10">
-            {statistiche.totaleAllenamenti > 0 
+            {statistiche.totaleAllenamenti > 0
               ? Math.round(statistiche.minutiTotali / statistiche.totaleAllenamenti)
               : 0}
             <span className="text-2xl text-zinc-500"> min</span>
@@ -244,8 +244,8 @@ export default function StoricoPage() {
             <Dumbbell className="w-16 h-16 text-zinc-600" />
           </div>
           <h3 className="text-2xl font-bold text-white mb-4">
-            {allenamenti.length === 0 
-              ? 'Nessun allenamento registrato' 
+            {allenamenti.length === 0
+              ? 'Nessun allenamento registrato'
               : 'Nessun risultato trovato'}
           </h3>
           <p className="text-zinc-400">
@@ -257,8 +257,8 @@ export default function StoricoPage() {
       ) : (
         <div className="space-y-4">
           {allenamentiFiltrati.map((allenamento, index) => (
-            <div 
-              key={allenamento.id} 
+            <div
+              key={allenamento.id}
               className="card-hover animate-slide-in"
               style={{ animationDelay: `${index * 0.05}s` }}
             >
@@ -270,7 +270,7 @@ export default function StoricoPage() {
                       <h3 className="text-xl font-black text-white mb-2">
                         {allenamento.schede_allenamento?.nome_scheda || 'Scheda eliminata'}
                       </h3>
-                      
+
                       <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400">
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4 flex-shrink-0" />
@@ -278,7 +278,7 @@ export default function StoricoPage() {
                             {format(new Date(allenamento.data_allenamento), 'EEEE d MMMM yyyy', { locale: it })}
                           </span>
                         </div>
-                        
+
                         {allenamento.durata_minuti && (
                           <div className="flex items-center space-x-2">
                             <Clock className="w-4 h-4 flex-shrink-0" />
