@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { creaClientSupabase } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Users, Ruler, Edit2, Save, X, LogOut } from 'lucide-react';
+import { User, Mail, Users, Ruler, Edit2, Save, X, LogOut, Trash2 } from 'lucide-react';
 
 export default function ProfiloPage() {
   const [profilo, setProfilo] = useState(null);
@@ -12,6 +12,7 @@ export default function ProfiloPage() {
   const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
   const [errore, setErrore] = useState('');
   const [successo, setSuccesso] = useState('');
+  const [eliminazioneInCorso, setEliminazioneInCorso] = useState(false);
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -139,6 +140,42 @@ export default function ProfiloPage() {
     router.push('/login');
   };
 
+  const eliminaAccount = async () => {
+    const conferma1 = window.confirm(
+      "ATTENZIONE: Stai per eliminare definitivamente il tuo account.\n\n" +
+      "Questa operazione cancellerà IRREVERSIBILMENTE tutti i tuoi dati, schede, esercizi e progressi.\n" +
+      "Sei veramente sicuro di voler procedere?"
+    );
+
+    if (!conferma1) return;
+
+    const conferma2 = window.prompt(
+      "Per confermare l'eliminazione definitiva, digita 'ELIMINA' qui sotto:"
+    );
+
+    if (conferma2 !== 'ELIMINA') {
+      alert("Eliminazione annullata.");
+      return;
+    }
+
+    setEliminazioneInCorso(true);
+    setErrore('');
+
+    try {
+      // Chiama la funzione RPC per eliminare l'utente dal database auth
+      const { error } = await supabase.rpc('delete_user');
+
+      if (error) throw new Error("Errore durante l'eliminazione del database: " + error.message);
+
+      // Effettua il logout locale e reindirizza alla home
+      await supabase.auth.signOut();
+      router.push('/login');
+    } catch (err) {
+      setErrore("Non è stato possibile eliminare l'account: " + err.message + ". Assicurati di aver aggiunto la funzione RPC su Supabase.");
+      setEliminazioneInCorso(false);
+    }
+  };
+
   if (caricamento) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -251,13 +288,32 @@ export default function ProfiloPage() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-zinc-700">
+            <div className="pt-6 border-t border-zinc-700 flex flex-col sm:flex-row gap-4 justify-between">
               <button
                 onClick={logout}
-                className="btn-secondary bg-red-900 border-red-700 hover:bg-red-800"
+                disabled={eliminazioneInCorso}
+                className="btn-secondary flex-1 sm:flex-none justify-center"
               >
                 <LogOut className="w-5 h-5" />
                 Esci
+              </button>
+
+              <button
+                onClick={eliminaAccount}
+                disabled={eliminazioneInCorso}
+                className="btn-primary bg-red-600 border-red-600 hover:bg-red-700 text-white flex-1 sm:flex-none justify-center"
+              >
+                {eliminazioneInCorso ? (
+                  <>
+                    <div className="spinner h-5 w-5 border-2 border-white"></div>
+                    Eliminazione...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-5 h-5" />
+                    Elimina Account per Sempre
+                  </>
+                )}
               </button>
             </div>
           </div>
